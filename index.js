@@ -12,7 +12,7 @@ app.post("/call", (req, res) => {
       <Connect>
         <Stream 
           url="wss://${process.env.RENDER_EXTERNAL_HOSTNAME}/twilio-stream"
-          track="both_tracks"
+          track="inbound_track"
           audioFormat="pcm16"
         />
       </Connect>
@@ -134,3 +134,4 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
+
