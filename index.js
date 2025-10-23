@@ -77,18 +77,18 @@ openaiSocket.on("open", () => {
 
   });
 
-  // Forward AI audio → caller
-  openaiSocket.on("message", (msg) => {
-    const data = JSON.parse(msg);
-    if (data.type === "output_audio_buffer.delta") {
-      twilioSocket.send(
-        JSON.stringify({
-          event: "media",
-          media: { payload: data.audio },
-        })
-      );
-    }
-  });
+openaiSocket.on("message", (msg) => {
+  const data = JSON.parse(msg);
+  console.log("🧠 OpenAI message:", data.type);
+  if (data.type === "output_audio_buffer.delta") {
+    twilioSocket.send(
+      JSON.stringify({
+        event: "media",
+        media: { payload: data.audio },
+      })
+    );
+  }
+});
 
   
   // 🕒 Keep-alive ping every 10 seconds so Render and Twilio don’t drop idle sockets
@@ -123,6 +123,7 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
+
 
 
 
