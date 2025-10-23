@@ -90,6 +90,14 @@ openaiSocket.on("open", () => {
     }
   });
 
+  
+  // 🕒 Keep-alive ping every 10 seconds so Render and Twilio don’t drop idle sockets
+  const ping = setInterval(() => {
+    if (twilioSocket.readyState === WebSocket.OPEN) {
+      twilioSocket.ping();
+    }
+  }, 10000);
+
   // Handle session completion
   openaiSocket.on("close", () => {
     console.log("🧠 OpenAI session closed");
@@ -115,6 +123,7 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
+
 
 
 
