@@ -49,6 +49,16 @@ wss.on("connection", (twilioSocket) => {
       })
     );
   });
+  
+  // 👇 Trigger the AI to speak a greeting right away
+  openaiSocket.send(
+    JSON.stringify({
+      type: "response.create",
+      response: {
+        instructions: "Say: Hi, this is Hannah from Hanley Hospitality — how can I help you today?",
+      },
+    })
+  );
 
   // Forward caller audio → OpenAI
   twilioSocket.on("message", (msg) => {
@@ -102,6 +112,7 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
+
 
 
 
