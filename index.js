@@ -10,10 +10,10 @@ app.post("/call", (req, res) => {
   res.send(`
     <Response>
       <Connect>
-        <Stream 
+        <Stream
           url="wss://${process.env.RENDER_EXTERNAL_HOSTNAME}/twilio-stream"
           track="inbound_track"
-          audio-format="pcm16"
+          audio-format="audio/x-pcm;bitrate=16000"
         />
       </Connect>
     </Response>
@@ -34,11 +34,9 @@ wss.on("connection", (twilioSocket) => {
     }
   );
 
-  // ✅ When OpenAI connection opens, configure session and greet
+  // Step 1️⃣ Configure session once connection opens
   openaiSocket.on("open", () => {
     console.log("🧠 Connected to OpenAI Realtime API");
-
-    // Step 1: Configure session with persona + voice
     openaiSocket.send(
       JSON.stringify({
         type: "session.update",
@@ -52,9 +50,15 @@ wss.on("connection", (twilioSocket) => {
         },
       })
     );
+  });
 
-    // Step 2: Wait briefly, then greet caller
-    setTimeout(() => {
+  // Step 2️⃣ Wait for "session.updated" before greeting
+  openaiSocket.on("message", (msg) => {
+    const data = JSON.parse(msg);
+    console.log("🧠 OpenAI message:", data.type);
+
+    if (data.type === "session.updated") {
+      console.log("🧠 Session updated, sending greeting...");
       openaiSocket.send(
         JSON.stringify({
           type: "response.create",
@@ -65,11 +69,20 @@ wss.on("connection", (twilioSocket) => {
           },
         })
       );
-      console.log("🎙️ Greeting request sent to OpenAI");
-    }, 300);
+    }
+
+    if (data.type === "output_audio_buffer.delta") {
+      console.log("🎧 Sending audio chunk to Twilio");
+      twilioSocket.send(
+        JSON.stringify({
+          event: "media",
+          media: { payload: data.audio },
+        })
+      );
+    }
   });
 
-  // 3️⃣ Forward caller audio → OpenAI
+  // Step 3️⃣ Forward caller audio → OpenAI
   twilioSocket.on("message", (msg) => {
     const data = JSON.parse(msg);
     if (data.event === "media") {
@@ -83,29 +96,14 @@ wss.on("connection", (twilioSocket) => {
     }
   });
 
-  // 4️⃣ Forward AI audio → caller (and log progress)
-  openaiSocket.on("message", (msg) => {
-    const data = JSON.parse(msg);
-    console.log("🧠 OpenAI message:", data.type);
-    if (data.type === "output_audio_buffer.delta") {
-      console.log("🎧 Sending audio chunk to Twilio");
-      twilioSocket.send(
-        JSON.stringify({
-          event: "media",
-          media: { payload: data.audio },
-        })
-      );
-    }
-  });
-
-  // 5️⃣ Keep connection alive (Render + Twilio drop idle sockets)
+  // Step 4️⃣ Keep-alive ping (Render/Twilio timeouts)
   const ping = setInterval(() => {
     if (twilioSocket.readyState === WebSocket.OPEN) {
       twilioSocket.ping();
     }
   }, 10000);
 
-  // Graceful shutdown
+  // Step 5️⃣ Graceful shutdown
   twilioSocket.on("close", () => {
     console.log("☎️ Twilio stream closed");
     clearInterval(ping);
