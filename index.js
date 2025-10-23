@@ -50,16 +50,15 @@ openaiSocket.on("open", () => {
     })
   );
 
-  // 👇 Trigger the AI to greet the caller immediately
-  openaiSocket.send(
-    JSON.stringify({
-      type: "response.create",
-      response: {
-        instructions:
-          "Say: Hi, this is Hannah from Hanley Hospitality — how can I help you today?",
-      },
-    })
-  );
+// 👇 Tell OpenAI to produce speech, not text
+  openaiSocket.send(JSON.stringify({
+    type: "response.create",
+    response: {
+      modalities: ["audio"],
+      instructions:
+        "Say: Hi, this is Hannah from Hanley Hospitality — how can I help you today?",
+    },
+  }));
 });
 
 
@@ -123,6 +122,7 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
+
 
 
 
