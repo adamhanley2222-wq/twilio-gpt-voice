@@ -10,11 +10,12 @@ app.post("/call", (req, res) => {
   res.send(`
     <Response>
       <Connect>
-        <Stream url="https://${process.env.RENDER_EXTERNAL_HOSTNAME}/twilio-stream" />
+        <Stream url="wss://${process.env.RENDER_EXTERNAL_HOSTNAME}/twilio-stream" />
       </Connect>
     </Response>
   `);
 });
+
 
 // 2️⃣ WebSocket server to handle Twilio's bidirectional audio
 const wss = new WebSocketServer({ noServer: true });
@@ -100,4 +101,5 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
+
 
