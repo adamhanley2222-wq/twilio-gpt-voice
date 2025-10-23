@@ -10,7 +10,7 @@ app.post("/call", (req, res) => {
   res.send(`
     <Response>
       <Connect>
-        <Stream url="wss://${process.env.RENDER_EXTERNAL_HOSTNAME}/twilio-stream" />
+        <Stream url="https://${process.env.RENDER_EXTERNAL_HOSTNAME}/twilio-stream" />
       </Connect>
     </Response>
   `);
@@ -100,3 +100,4 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
+
