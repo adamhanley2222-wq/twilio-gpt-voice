@@ -53,14 +53,15 @@ wss.on("connection", (twilioSocket) => {
   // Forward caller audio → OpenAI
   twilioSocket.on("message", (msg) => {
     const data = JSON.parse(msg);
-    if (data.event === "media") {
-      openaiSocket.send(
-        JSON.stringify({
-          type: "input_audio_buffer.append",
-          audio: data.media.payload,
-        })
-      );
-    }
+    if (data.event === "media" && openaiSocket.readyState === WebSocket.OPEN) {
+  openaiSocket.send(
+    JSON.stringify({
+      type: "input_audio_buffer.append",
+      audio: data.media.payload,
+    })
+  );
+}
+
   });
 
   // Forward AI audio → caller
@@ -101,5 +102,6 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
+
 
 
