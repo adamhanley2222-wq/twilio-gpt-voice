@@ -13,20 +13,20 @@ app.post("/call", (req, res) => {
         <Stream 
           url="wss://${process.env.RENDER_EXTERNAL_HOSTNAME}/twilio-stream"
           track="inbound_track"
-          audioFormat="pcm16"
+          audio-format="pcm16"
         />
       </Connect>
     </Response>
   `);
 });
 
-// 2️⃣ WebSocket server to handle Twilio's bidirectional audio
+// 2️⃣ WebSocket server to handle Twilio’s bidirectional audio
 const wss = new WebSocketServer({ noServer: true });
 
 wss.on("connection", (twilioSocket) => {
   console.log("✅ Twilio audio stream connected");
 
-  // Connect to OpenAI Realtime
+  // Connect to OpenAI Realtime API
   const openaiSocket = new WebSocket(
     "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview",
     {
@@ -34,11 +34,11 @@ wss.on("connection", (twilioSocket) => {
     }
   );
 
-  // When OpenAI is ready, configure and start the greeting
+  // ✅ When OpenAI connection opens, configure session and greet
   openaiSocket.on("open", () => {
     console.log("🧠 Connected to OpenAI Realtime API");
 
-    // 1️⃣ Configure session: must match model's expected fields
+    // Step 1: Configure session with persona + voice
     openaiSocket.send(
       JSON.stringify({
         type: "session.update",
@@ -49,34 +49,31 @@ wss.on("connection", (twilioSocket) => {
             menus, or bookings. Ask for clarification if needed.
           `,
           voice: "alloy",
-          input_audio_format: "pcm16",
-          output_audio_format: "pcm16",
         },
       })
     );
 
-    // 2️⃣ Wait 200ms to ensure session update is accepted
+    // Step 2: Wait briefly, then greet caller
     setTimeout(() => {
-      // 3️⃣ Explicitly request an audio response
       openaiSocket.send(
         JSON.stringify({
           type: "response.create",
           response: {
             modalities: ["audio"],
-            audio_format: "pcm16",
             instructions:
-              "Say: Hi, this is Hannah from Hanley Hospitality — how can I help you today?",
+              "Say 'Hi, this is Hannah from Hanley Hospitality — how can I help you today?'",
           },
         })
       );
       console.log("🎙️ Greeting request sent to OpenAI");
-    }, 200);
+    }, 300);
   });
 
-  // Forward caller audio → OpenAI
+  // 3️⃣ Forward caller audio → OpenAI
   twilioSocket.on("message", (msg) => {
     const data = JSON.parse(msg);
-    if (data.event === "media" && openaiSocket.readyState === WebSocket.OPEN) {
+    if (data.event === "media") {
+      if (openaiSocket.readyState !== WebSocket.OPEN) return;
       openaiSocket.send(
         JSON.stringify({
           type: "input_audio_buffer.append",
@@ -86,7 +83,7 @@ wss.on("connection", (twilioSocket) => {
     }
   });
 
-  // Forward AI audio → caller (and log progress)
+  // 4️⃣ Forward AI audio → caller (and log progress)
   openaiSocket.on("message", (msg) => {
     const data = JSON.parse(msg);
     console.log("🧠 OpenAI message:", data.type);
@@ -101,7 +98,7 @@ wss.on("connection", (twilioSocket) => {
     }
   });
 
-  // 🕒 Keep-alive ping every 10 seconds so Render and Twilio don’t drop idle sockets
+  // 5️⃣ Keep connection alive (Render + Twilio drop idle sockets)
   const ping = setInterval(() => {
     if (twilioSocket.readyState === WebSocket.OPEN) {
       twilioSocket.ping();
@@ -121,12 +118,12 @@ wss.on("connection", (twilioSocket) => {
   });
 });
 
-// 3️⃣ Start HTTP server (Render handles HTTPS)
+// 6️⃣ Start HTTP server (Render handles HTTPS)
 const server = app.listen(process.env.PORT || 10000, "0.0.0.0", () => {
   console.log("🚀 Server running on port", process.env.PORT || 10000);
 });
 
-// 4️⃣ Upgrade to WebSocket when Twilio connects
+// 7️⃣ Upgrade to WebSocket when Twilio connects
 server.on("upgrade", (req, socket, head) => {
   if (req.url === "/twilio-stream") {
     wss.handleUpgrade(req, socket, head, (ws) => {
@@ -134,4 +131,3 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
-
