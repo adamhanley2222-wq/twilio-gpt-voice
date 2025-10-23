@@ -32,33 +32,36 @@ wss.on("connection", (twilioSocket) => {
   );
 
   // When OpenAI is ready, send personality / instructions
-  openaiSocket.on("open", () => {
-    console.log("🧠 Connected to OpenAI Realtime API");
+openaiSocket.on("open", () => {
+  console.log("🧠 Connected to OpenAI Realtime API");
 
-    openaiSocket.send(
-      JSON.stringify({
-        type: "session.update",
-        session: {
-          instructions: `
-            You are Hannah, the friendly receptionist for Hanley Hospitality.
-            Be natural, warm, and concise. You can answer questions about catering,
-            menus, or bookings. Ask for clarification if needed.
-          `,
-          voice: "alloy",
-        },
-      })
-    );
-  });
-  
-  // 👇 Trigger the AI to speak a greeting right away
+  // Update the model’s instructions and voice
+  openaiSocket.send(
+    JSON.stringify({
+      type: "session.update",
+      session: {
+        instructions: `
+          You are Hannah, the friendly receptionist for Hanley Hospitality.
+          Be natural, warm, and concise. You can answer questions about catering,
+          menus, or bookings. Ask for clarification if needed.
+        `,
+        voice: "alloy",
+      },
+    })
+  );
+
+  // 👇 Trigger the AI to greet the caller immediately
   openaiSocket.send(
     JSON.stringify({
       type: "response.create",
       response: {
-        instructions: "Say: Hi, this is Hannah from Hanley Hospitality — how can I help you today?",
+        instructions:
+          "Say: Hi, this is Hannah from Hanley Hospitality — how can I help you today?",
       },
     })
   );
+});
+
 
   // Forward caller audio → OpenAI
   twilioSocket.on("message", (msg) => {
@@ -112,6 +115,7 @@ server.on("upgrade", (req, socket, head) => {
     });
   }
 });
+
 
 
 
